@@ -16,18 +16,26 @@ const PARTS = [
   ['thighR', 'thigh_r', 'calf_r', .08, 'pelvis'], ['calfR', 'calf_r', 'foot_r', .065, 'thighR'],
 ];
 const GROUP_PART = (0x0002 << 16) | 0x0001; // parts hit the world only, never each other
-const STEP = 1 / 60;
+const STEP = 1 / 120;
+// Muscle tone: each joint is sprung back toward the pose the body had when it went limp,
+// so people fold and tumble instead of collapsing into a heap.
+const TONE = { k: 160, c: 14 }, LIFT = .09, RADIUS = 1.35;
 
 export function createRagdolls({ height, colliders, floor = height }) {
-  const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 }); world.timestep = STEP;
+  const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 }); world.timestep = STEP; world.integrationParameters.numSolverIterations = 8;
   const map = new Map(); let acc = 0;
   const UP = new THREE.Vector3(0, 1, 0), v = new THREE.Vector3(), q = new THREE.Quaternion(), q2 = new THREE.Quaternion(), pq = new THREE.Quaternion();
 
   function groundAround(x, z) {
     const N = 24, S = 1, ox = x - N * S / 2, oz = z - N * S / 2, verts = [], idx = [];
-    for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) { const px = ox + i * S, pz = oz + j * S; verts.push(px, floor(px, pz), pz); }
+    for (let i = 0; i <= N; i++) for (let j = 0; j <= N; j++) { const px = ox + i * S, pz = oz + j * S; verts.push(px, floor(px, pz) + LIFT, pz); }
     for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) { const a = i * (N + 1) + j, b = a + N + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
     const out = [world.createCollider(RAPIER.ColliderDesc.trimesh(new Float32Array(verts), new Uint32Array(idx)).setFriction(.9))];
+    // Backstop slabs per 4m cell, sitting just under the lowest corner, catch anything that slips through.
+    for (let i = 0; i < N; i += 4) for (let j = 0; j < N; j += 4) {
+      let lo = Infinity; for (let a = 0; a <= 4; a++) for (let b = 0; b <= 4; b++) lo = Math.min(lo, verts[((i + a) * (N + 1) + (j + b)) * 3 + 1]);
+      out.push(world.createCollider(RAPIER.ColliderDesc.cuboid(2, 1, 2).setTranslation(ox + i + 2, lo - 1.02, oz + j + 2)));
+    }
     for (const c of colliders) {
       if (Math.abs(c.x - x) > 14 || Math.abs(c.z - z) > 14) continue;
       const h = c.h ?? 4, y = height(c.x, c.z);
@@ -42,7 +50,8 @@ export function createRagdolls({ height, colliders, floor = height }) {
     model.updateWorldMatrix(true, true);
     const c = pelvisBone.getWorldPosition(new THREE.Vector3());
     const rec = { model, parts: [], joints: [], ground: groundAround(c.x, c.z), restPelvis: pelvisBone.position.clone() };
-    for (const [name, bn, cn, r, parent] of PARTS) {
+    for (const [name, bn, cn, r0, parent] of PARTS) {
+      const r = r0 * RADIUS;
       const B = model.getObjectByName(bn); if (!B) continue;
       const P = parent ? rec.parts.find(p => p.name === parent) : null; if (parent && !P) continue;
       const a = B.getWorldPosition(new THREE.Vector3());
@@ -52,11 +61,14 @@ export function createRagdolls({ height, colliders, floor = height }) {
       const bq = new THREE.Quaternion().setFromUnitVectors(UP, dir), mid = a.clone().add(b).multiplyScalar(.5);
       const spin = (Math.random() - .5) * 3;
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(mid.x, mid.y, mid.z).setRotation(bq)
-        .setLinvel(vel.x, vel.y, vel.z).setAngvel({ x: spin, y: spin * .5, z: -spin }).setLinearDamping(.12).setAngularDamping(1.4).setCcdEnabled(true));
+        .setLinvel(vel.x, vel.y, vel.z).setAngvel({ x: spin, y: spin * .5, z: -spin }).setLinearDamping(.08).setAngularDamping(.6).setCcdEnabled(true));
       world.createCollider(RAPIER.ColliderDesc.capsule(Math.max(.01, len / 2 - r * .6), r).setDensity(950).setFriction(.85).setRestitution(.05).setCollisionGroups(GROUP_PART), body);
       const inv = bq.clone().invert();
       const part = { name, bone: B, body, a, offset: inv.clone().multiply(B.getWorldQuaternion(new THREE.Quaternion())), local: a.clone().sub(mid).applyQuaternion(inv) };
+      part.inertia = body.mass() * (len * len / 12 + r * r / 4) + .002;
       if (P) {
+        const pr0 = P.body.rotation(); part.parent = P;
+        part.rest = new THREE.Quaternion(pr0.x, pr0.y, pr0.z, pr0.w).invert().multiply(bq); // child relative to parent
         const pp = P.body.translation(), pr = P.body.rotation();
         const a1 = a.clone().sub(v.set(pp.x, pp.y, pp.z)).applyQuaternion(q.set(pr.x, pr.y, pr.z, pr.w).invert());
         rec.joints.push(world.createImpulseJoint(RAPIER.JointData.spherical({ x: a1.x, y: a1.y, z: a1.z }, { x: part.local.x, y: part.local.y, z: part.local.z }), P.body, body, true));
@@ -79,9 +91,27 @@ export function createRagdolls({ height, colliders, floor = height }) {
     rec.parts[0].bone.position.copy(rec.restPelvis); map.delete(key); return out;
   }
 
+  const mq = new THREE.Quaternion(), mq2 = new THREE.Quaternion(), mv = new THREE.Vector3();
+  function muscles() {
+    for (const rec of map.values()) for (const p of rec.parts) {
+      if (!p.parent) continue;
+      const a = p.parent.body.rotation(), b = p.body.rotation();
+      mq.set(a.x, a.y, a.z, a.w).multiply(p.rest);             // desired child orientation
+      mq2.set(b.x, b.y, b.z, b.w).invert(); mq.multiply(mq2);    // error = desired * current^-1
+      if (mq.w < 0) { mq.x = -mq.x; mq.y = -mq.y; mq.z = -mq.z; mq.w = -mq.w; }
+      const s = Math.sqrt(1 - Math.min(1, mq.w * mq.w)), ang = 2 * Math.acos(Math.min(1, mq.w));
+      if (s > 1e-4) mv.set(mq.x / s * ang, mq.y / s * ang, mq.z / s * ang); else mv.set(0, 0, 0);
+      const wa = p.parent.body.angvel(), wb = p.body.angvel();
+      const I = Math.min(p.inertia, p.parent.inertia);
+      const tx = (TONE.k * mv.x - TONE.c * (wb.x - wa.x)) * I * STEP, ty = (TONE.k * mv.y - TONE.c * (wb.y - wa.y)) * I * STEP, tz = (TONE.k * mv.z - TONE.c * (wb.z - wa.z)) * I * STEP;
+      p.body.applyTorqueImpulse({ x: tx, y: ty, z: tz }, true);
+      p.parent.body.applyTorqueImpulse({ x: -tx, y: -ty, z: -tz }, true);
+    }
+  }
   function update(dt) {
     if (!map.size) { acc = 0; return; }
-    acc += Math.min(dt, .1); let n = 0; while (acc >= STEP && n < 4) { world.step(); acc -= STEP; n++; }
+    acc += Math.min(dt, .1); let n = 0; while (acc >= STEP && n < 8) { muscles(); world.step(); acc -= STEP; n++; }
+    if (n === 8) acc = 0;
     for (const rec of map.values()) for (const p of rec.parts) {
       const t = p.body.translation(), r = p.body.rotation(); q.set(r.x, r.y, r.z, r.w);
       const wq = q2.copy(q).multiply(p.offset), parent = p.bone.parent;
