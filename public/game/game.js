@@ -1195,3 +1195,4 @@ function frame(now){
 renderer.setAnimationLoop(null);requestAnimationFrame(frame);
 $('loading').style.display='none';
 
+window.boganRag={ragdolls,knockPlayer,npcs:npcLocals,state};
