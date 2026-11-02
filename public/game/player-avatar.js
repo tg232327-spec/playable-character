@@ -15,10 +15,8 @@ const MAP = [
   ['Bone004_010', 'neck_01', 'delta'],
   ['Bone019_011', 'Head', 'delta'],
   // side A chain (x < 0 at rest) and side B chain (x > 0)
-  ['Bone013_03', 'clavicle_A', 'dir', 'Bone014_04', 'upperarm_A'],
   ['Bone014_04', 'upperarm_A', 'dir', 'Bone015_05', 'lowerarm_A'],
   ['Bone015_05', 'lowerarm_A', 'dir', 'Bone015_end_034', 'hand_A'],
-  ['Bone016_07', 'clavicle_B', 'dir', 'Bone017_08', 'upperarm_B'],
   ['Bone017_08', 'upperarm_B', 'dir', 'Bone018_09', 'lowerarm_B'],
   ['Bone018_09', 'lowerarm_B', 'dir', 'Bone018_end_035', 'hand_B'],
   ['Bone008_023', 'thigh_A', 'dir', 'Bone009_024', 'calf_A'],
