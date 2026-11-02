@@ -58,6 +58,8 @@ export async function attachPlayerAvatar(group, srcRoot) {
     const T = tgtRoot.getObjectByName(t), S = srcRoot.getObjectByName(side(s));
     if (!T || !S) return null;
     const l = { T, S, mode };
+    // the pelvis also carries translation (hip bob, and ragdolls flinging the body around)
+    if (t === '_rootJoint') { const gi = _inv(group); l.sPos = S.getWorldPosition(new THREE.Vector3()).applyMatrix4(gi); l.tPos = T.getWorldPosition(new THREE.Vector3()).applyMatrix4(gi); }
     // rest orientations expressed in group space
     l.tRest = gQinv.clone().multiply(T.getWorldQuaternion(new THREE.Quaternion()));
     l.sRest = gQinv.clone().multiply(S.getWorldQuaternion(new THREE.Quaternion()));
@@ -85,6 +87,11 @@ export async function attachPlayerAvatar(group, srcRoot) {
       }
       const parentQ = l.T.parent.getWorldQuaternion(new THREE.Quaternion());
       l.T.quaternion.copy(parentQ.invert().multiply(desired));
+      if (l.sPos) {
+        const gi = _inv(group), d = l.S.getWorldPosition(_v).applyMatrix4(gi).sub(l.sPos);
+        const w = l.tPos.clone().add(d).applyMatrix4(group.matrixWorld);
+        l.T.parent.updateWorldMatrix(true, false); l.T.position.copy(l.T.parent.worldToLocal(w));
+      }
       l.T.updateMatrixWorld(true);
     }
   };

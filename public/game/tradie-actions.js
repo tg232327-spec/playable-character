@@ -123,13 +123,13 @@ export const MOVES=[
  {name:'HOOK',clip:'hook',speed:.9,hit:.3,reach:1.8,dmg:30,push:.5},
  {name:'HAYMAKER',clip:'hook',speed:.6,hit:.46,reach:2.1,dmg:42,push:.9},
 ];
-export function createBrawling(state,character,npcs,height,blocked,impact,toast){
- let attack=null,combo=0,health=100,hits=0,cooldown=0,down=0,fell=false;
+export function createBrawling(state,character,npcs,height,blocked,impact,toast,hooks={}){
+ let lastHit={x:0,y:2,z:0},attack=null,combo=0,health=100,hits=0,cooldown=0,down=0,fell=false;
  for(const n of npcs){n.health=100;n.aggro=false;n.down=0;n.cooldown=1;n.busy=0;n.fell=false}
  function cancel(){if(attack){attack=null;character.release()}}
  return{
   cancel,
-  reset(){cancel();health=100;down=0;hits=0;fell=false;character.release();for(const n of npcs){n.health=100;n.aggro=false;n.down=0;n.busy=0;n.fell=false;n.play(n.walking?'walk':'idle');n.root.position.set(n.x,height(n.x,n.z)+.13,n.z)}},
+  reset(){cancel();health=100;down=0;hits=0;fell=false;character.release();hooks.playerUp?.();for(const n of npcs){if(n.rag)hooks.npcUp?.(n);n.health=100;n.aggro=false;n.down=0;n.busy=0;n.fell=false;n.play(n.walking?'walk':'idle');n.root.position.set(n.x,height(n.x,n.z)+.13,n.z)}},
   attack(){
    if(!state.started||state.paused||!state.onFoot||state.onBus||state.swimming||state.ride||attack||cooldown>0||down>0)return;
    const mv=MOVES[combo++%MOVES.length];
@@ -153,20 +153,20 @@ export function createBrawling(state,character,npcs,height,blocked,impact,toast)
     }
     if(attack.time>=attack.dur-.05){attack=null;cooldown=.04;character.release()}
    }
-   if(down>0&&!fell){fell=true;attack=null;character.playOnce('knock',1,.05)}
+   if(down>0&&!fell){fell=true;attack=null;if(!hooks.playerDown?.(lastHit,down))character.playOnce('knock',1,.05)}
    else if(down<=0&&fell){fell=false;character.release(.25)}
    for(const n of npcs){
     n.busy=Math.max(0,n.busy-dt);
     // V11: knockback integration — velocity decays, pop arcs under gravity.
-    if(n.kx||n.kz||n.popY>0){
+    if(!n.rag&&(n.kx||n.kz||n.popY>0)){
      n.kx=(n.kx||0)*(1-Math.min(1,dt*6));n.kz=(n.kz||0)*(1-Math.min(1,dt*6));n.popY=Math.max(0,(n.popY||0)-dt*9.8);
      const nx=n.root.position.x+n.kx*dt,nz=n.root.position.z+n.kz*dt;
      if(!blocked(nx,nz,.3))n.root.position.set(nx,height(nx,nz)+.13+Math.max(0,n.popY)*.18,nz);
      if(Math.abs(n.kx)<.05)n.kx=0;if(Math.abs(n.kz)<.05)n.kz=0;
     }
     if(n.down>0){
-     if(!n.fell){n.fell=true;n.aggro=false;n.play('death',.08)}
-     n.down-=dt;if(n.down<=0){n.fell=false;n.health=100;n.play(n.walking?'walk':'idle',.4)}continue}
+     if(!n.fell){n.fell=true;n.aggro=false;const v=n.hitV||{x:(n.kx||0)*1.3,y:1.6+(n.popY||0),z:(n.kz||0)*1.3};n.hitV=null;n.kx=n.kz=0;n.popY=0;if(!hooks.npcDown?.(n,v))n.play('death',.08)}
+     n.down-=dt;if(n.down<=0){if(n.rag)hooks.npcUp?.(n);n.fell=false;n.health=100;n.play(n.walking?'walk':'idle',.4)}continue}
     if(!n.aggro)continue;
     n.cooldown-=dt;const dx=state.walkX-n.root.position.x,dz=state.walkZ-n.root.position.z,d=Math.hypot(dx,dz);
     if(!state.onFoot||state.onBus||state.swimming||d>22){n.aggro=false;n.play(n.walking?'walk':'idle');continue}
@@ -178,7 +178,7 @@ export function createBrawling(state,character,npcs,height,blocked,impact,toast)
     if(n.strike>0){n.strike-=dt;if(n.strike<=0&&d<1.9&&down<=0){health=Math.max(0,health-12);impact();
      // V11: the player takes a shove too.
      state.walkX+=dx/(d||1)*-.22;state.walkZ+=dz/(d||1)*-.22;
-     if(health===0){down=3;health=45;n.aggro=false;toast('Seeing stars. Take a breather.')}}}
+     if(health===0){lastHit={x:-dx/(d||1)*3.5,y:2.2,z:-dz/(d||1)*3.5};down=3.5;health=45;n.aggro=false;toast('Seeing stars. Take a breather.')}}}
     if(n.cooldown<=0&&d<1.7&&n.busy<=0){n.cooldown=1.65;n.busy=.8;n.strike=.3;n.play(Math.random()<.5?'jab':'cross',.1)}
    }
    // V11: NPCs no longer stack — gentle separation between brawlers and wanderers.

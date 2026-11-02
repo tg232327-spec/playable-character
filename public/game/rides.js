@@ -414,9 +414,10 @@ export function createRides({ padAt = () => null, scene, height, extraSites = []
     // Jetty and land obstructions.
     if (nx > JETTY.x0 - 0.8 && nx < JETTY.x1 + 0.8 && Math.abs(nz - JETTY.z) < JETTY.half + 0.75 && j.y < JETTY.y + 0.3) {
       const dz = nz - JETTY.z, side = Math.sign(dz) || 1;
+      if (rides.active === j && Math.hypot(j.vx, j.vz) > 10) rides.crash = { kind: 'jetski', speed: Math.hypot(j.vx, j.vz), vx: j.vx, vz: j.vz };
       nz = JETTY.z + side * (JETTY.half + 0.75); if (Math.abs(vr) > 1) bangSfx(audio, 'bump'); j.vz = Math.abs(j.vz) * 0.2 * side; vf *= 0.6;
     }
-    if (ground > ocean.level + 0.35 && blocked(nx, nz, 1.0)) { nx = j.x; nz = j.z; j.vx = j.vz = 0; vf = 0; }
+    if (ground > ocean.level + 0.35 && blocked(nx, nz, 1.0)) { if (rides.active === j && Math.hypot(j.vx, j.vz) > 8) rides.crash = { kind: 'jetski', speed: Math.hypot(j.vx, j.vz), vx: j.vx, vz: j.vz }; nx = j.x; nz = j.z; j.vx = j.vz = 0; vf = 0; }
     j.x = clamp(nx, 40, 2380); j.z = clamp(nz, -1700, 1700);
     // Vertical dynamics: buoyancy, planing lift, free flight.
     const depth2 = surf - (j.y - 0.12);
@@ -526,12 +527,13 @@ export function createRides({ padAt = () => null, scene, height, extraSites = []
     let hit = false;
     if (blocked(nx, sc.z, 0.5) || waterAt(nx, sc.z)) { nx = sc.x; hit = true; }
     if (blocked(nx, nz, 0.5) || waterAt(nx, nz)) { nz = sc.z; hit = true; }
-    if (hit && Math.abs(sc.speed) > 1) { if (Math.abs(sc.speed) > 4.5 && rides.active === sc) { bangSfx(audio, 'bump'); impact?.(); toast('Whoa. Mind the fence.'); } sc.speed *= 0.25; }
+    if (hit && Math.abs(sc.speed) > 7.5 && rides.active === sc) { bangSfx(audio, 'bump'); impact?.(); rides.crash = { kind: 'scooter', speed: Math.abs(sc.speed), vx: Math.sin(sc.yaw) * sc.speed, vz: Math.cos(sc.yaw) * sc.speed }; }
+    else if (hit && Math.abs(sc.speed) > 1) { if (Math.abs(sc.speed) > 4.5 && rides.active === sc) { bangSfx(audio, 'bump'); impact?.(); toast('Whoa. Mind the fence.'); } sc.speed *= 0.25; }
     sc.x = nx; sc.z = nz;
     for (const n of npcs) {
       if (n.down > 0) continue; const dx = n.root.position.x - sc.x, dz = n.root.position.z - sc.z;
       if (dx * dx + dz * dz < 1.1 && Math.abs(sc.speed) > 3.2 && rides.active === sc) {
-        n.down = 6; n.health = 0; n.aggro = false; sc.speed *= 0.4; impact?.(); bangSfx(audio, 'bump'); toast('Cleaned up a local. Keep it to the footpath.');
+        n.hitV = { x: Math.sin(sc.yaw) * sc.speed * 1.2, y: 2.4, z: Math.cos(sc.yaw) * sc.speed * 1.2 }; n.down = 6; n.health = 0; n.aggro = false; sc.speed *= 0.4; impact?.(); bangSfx(audio, 'bump'); toast('Cleaned up a local. Keep it to the footpath.');
       }
     }
     const fy = groundY(sc.x + Math.sin(sc.yaw) * 0.5, sc.z + Math.cos(sc.yaw) * 0.5), ry = groundY(sc.x - Math.sin(sc.yaw) * 0.45, sc.z - Math.cos(sc.yaw) * 0.45);

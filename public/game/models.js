@@ -258,7 +258,7 @@ export class AnimatedLocal{
     this.wp={x:this.homeX+Math.cos(a)*r,z:this.homeZ+Math.sin(a)*r};
    },
    update(dt){
-    this.time+=dt;mixer.update(dt);
+    this.time+=dt;if(!this.rag)mixer.update(dt);
     if(this.cur===acts.death&&acts.death.time>2.1)acts.death.paused=true;
     if(this.aggro||this.down>0)return;
     if(!walking)return;

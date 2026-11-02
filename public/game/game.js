@@ -4,6 +4,7 @@ import { makeDetailedCar, AnimatedLocal, DoorRig } from './models.js';
 import { createStreetRules } from './street-rules.js';
 import { poseTradie,createBrawling } from './tradie-actions.js';
 import { VehiclePhysics } from './vehicle-physics.js';
+import { createRagdolls } from './ragdoll.js';
 import { createSunset, createTyreFX } from './after-hours.js';
 import { buildVictorianStreets, createVicBus } from './victoria.js';
 import { VictorianSoundscape } from './victoria-audio.js';
@@ -704,7 +705,30 @@ const jobs={
 };
 let jobId='esky',jobElapsed=0,jobFailed=false;
 const state={mode:'menu',x:9.1,z:101.2,y:3,angle:-Math.PI/2,speed:0,vehicle:0,onFoot:false,walkX:0,walkZ:0,walkVX:0,walkVZ:0,walkY:0,walkVY:0,orbit:Math.PI,mission:0,cash:0,paused:false,started:false,camera:0,time:0,travel:0,sitting:null,high:0,drunk:0};
-const brawling=createBrawling(state,character,npcLocals,height,blocked,()=>audio?.impact?.(),toast);
+// Rapier ragdolls: KO'd locals, the player when flattened, rammed or thrown off a ride.
+const ragdolls=createRagdolls({height,colliders,floor:(x,z)=>Math.max(height(x,z),padAt(x,z)??-Infinity,ocean.level-.8)});
+let playerRag=0;
+function knockPlayer(vel,dur=3.5){
+ if(ragdolls.active('player')){ragdolls.hit('player',vel);playerRag=Math.max(playerRag,dur);return true}
+ if(entry||state.onBus||state.sitting)return false;
+ if(!state.onFoot&&!rides.active)return false;
+ brawling.cancel();if(guns.drawn>=0)guns.draw(guns.drawn);
+ person.updateMatrixWorld(true);
+ if(!ragdolls.start('player',character.model,vel))return false;
+ if(rides.active)rides.forceDismount();
+ playerRag=dur;state.walkVX=state.walkVZ=state.walkVY=0;return true;
+}
+function endPlayerRag(){
+ playerRag=0;const p=ragdolls.release('player');if(!p)return;
+ state.walkX=p.x;state.walkZ=p.z;state.walkY=Math.max(height(p.x,p.z),padAt(p.x,p.z)??-Infinity)+.13;
+ person.quaternion.identity();person.position.set(state.walkX,state.walkY,state.walkZ);person.rotation.y=state.orbit;person.visible=true;character.release(.2);
+}
+const brawling=createBrawling(state,character,npcLocals,height,blocked,()=>audio?.impact?.(),toast,{
+ npcDown:(n,v)=>{n.root.updateMatrixWorld(true);if(!ragdolls.start(n,n.model,v))return false;n.rag=true;return true},
+ npcUp:n=>{const p=ragdolls.release(n);n.rag=false;if(p){n.root.position.set(p.x,height(p.x,p.z)+.13,p.z)}},
+ playerDown:(v,d)=>knockPlayer(v,d),
+ playerUp:()=>{if(playerRag>0)endPlayerRag()},
+});
 // V11: two simple guns — press 1 for the pistol, 2 for the rifle, left click to fire.
 const guns=createGuns({scene,character,state,npcs:npcLocals,toast,tone});
 let entry=null,spacePress=0;
@@ -909,7 +933,11 @@ function update(dt){
  const input={throttle:0,steer:0,handbrake:false,burnout:false},rideInput={throttle:0,steer:0,brake:false,boost:false,jump:false};
  if(active){
   const forward=keys.has('w')||keys.has('arrowup'),back=keys.has('s')||keys.has('arrowdown'),left=keys.has('a')||keys.has('arrowleft'),right=keys.has('d')||keys.has('arrowright'),drift=keys.has(' ');
-  if(state.onFoot&&state.sitting&&!state.onBus&&!entry&&!rides.active){
+  if(playerRag>0){
+   // Ragdolled: physics owns the body; camera follows the pelvis.
+   playerRag-=dt;const p=ragdolls.pos('player');if(p){state.walkX=p.x;state.walkZ=p.z;state.walkY=Math.max(height(p.x,p.z),padAt(p.x,p.z)??-Infinity)+.13}
+   state.walkVX=state.walkVZ=0;if(playerRag<=0)endPlayerRag();
+  }else if(state.onFoot&&state.sitting&&!state.onBus&&!entry&&!rides.active){
    // V11: parked on the couch / stool — hold the pose, breathe.
    const s=state.sitting;
    state.walkX=s.x;state.walkZ=s.z;state.walkY=s.y-.95;state.walkVX=state.walkVZ=0;
@@ -991,6 +1019,8 @@ function update(dt){
  if(!state.paused)for(const r of doorRigs)r.update(dt);
  state.ride=rides.active;
  if(!state.paused)rides.update(dt,rideInput,audioOn?audio:null);
+ if(rides.crash){const c=rides.crash;rides.crash=null;const k=Math.min(1.4,.7+c.speed/25);
+  if(knockPlayer({x:c.vx*k,y:2.5+c.speed*.22,z:c.vz*k},4))toast(c.kind==='jetski'?'Ate it on the jet ski. Big stack.':'Stacked the scooter. That one hurt.')}
  if(!state.paused&&!$('help').open&&!$('travel').open&&!$('jobs').open)vehiclePhysics.step(dt,input,active&&!state.onFoot);
  if(!state.onFoot&&!state.paused&&state.x>86){
   const tr=vehiclePhysics.body.translation(),wl=ocean.height(tr.x,tr.z),depth=wl-(tr.y-.55);
@@ -1051,6 +1081,23 @@ function update(dt){
  busAction.textContent=state.onBus?(state.onBus.wait>0?'F · GET OFF BUS':'ROUTE 782 · NEXT STOP'): 'F · BOARD ROUTE 782';
  busAction.disabled=!!state.onBus&&state.onBus.wait<=0;
  if(active){brawling.update(dt);guns.update(dt);streetRules.update(state.time)}
+ // Cars (yours and traffic) send people flying.
+ if(!state.paused){
+  const hitters=[];
+  if(!state.onFoot&&!state.onBus){const lv=vehiclePhysics.body.linvel();hitters.push({x:state.x,z:state.z,vx:lv.x,vz:lv.z,mine:true})}
+  for(const t of traffic)if(t.car.visible){const lv=t.physics.body.linvel();hitters.push({x:t.car.position.x,z:t.car.position.z,vx:lv.x,vz:lv.z})}
+  for(const h of hitters){
+   const sp=Math.hypot(h.vx,h.vz);if(sp<4)continue;
+   const vel={x:h.vx*1.15,y:2+sp*.28,z:h.vz*1.15};
+   for(const n of npcLocals){
+    if(!n.root.visible)continue;const p=ragdolls.pos(n)||n.root.position;if(Math.hypot(p.x-h.x,p.z-h.z)>2.2)continue;
+    if(n.rag){if((n.hitCD||0)<state.time){ragdolls.hit(n,vel);n.hitCD=state.time+.7}continue}
+    n.health=0;n.down=8;n.aggro=false;n.hitV=vel;audio?.impact?.();if(h.mine)toast('Sent a local flying. Brutal.');
+   }
+   if(state.onFoot&&!rides.active&&!h.mine&&(playerRag<=0)&&Math.hypot(state.walkX-h.x,state.walkZ-h.z)<2){if(knockPlayer(vel,4)){audio?.impact?.();toast('Cleaned up by traffic. Look both ways.')}}
+  }
+  ragdolls.update(dt);
+ }
  if(!state.paused)for(const npc of npcLocals){npc.root.visible=Math.hypot(npc.root.position.x-(state.onFoot?state.walkX:state.x),npc.root.position.z-(state.onFoot?state.walkZ:state.z))<110;if(npc.root.visible)npc.update(dt)}
  if(!state.paused)targetDiamond.rotation.y+=dt;targetDiamond.position.y=6+Math.sin(state.time*2)*.4;
  ocean.update(state.paused?0:dt,state.time,state.onFoot?state.walkX:state.x,state.onFoot?state.walkZ:state.z);
@@ -1148,3 +1195,4 @@ function frame(now){
 renderer.setAnimationLoop(null);requestAnimationFrame(frame);
 $('loading').style.display='none';
 
+window.boganRag={ragdolls,knockPlayer,npcs:npcLocals,state};
