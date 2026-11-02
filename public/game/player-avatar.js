@@ -37,12 +37,14 @@ export async function attachPlayerAvatar(group, srcRoot) {
   // hide the original body (meshes only; bones and hand-held props stay live)
   srcRoot.traverse(o => { if (o.isMesh && !o.userData.keepVisible) o.visible = false; });
 
+  // the GLB faces the opposite way to the game's rig: turn it round (its x<0 chain then sits at x>0)
+  tgtRoot.rotation.y = Math.PI;
   group.add(tgtRoot);
   group.updateMatrixWorld(true);
 
   // which source side sits at negative x in the rest pose
   const sx = n => srcRoot.getObjectByName(n).getWorldPosition(_v).applyMatrix4(_inv(group)).x;
-  const negIsL = sx('upperarm_l') < sx('upperarm_r');
+  const negIsL = sx('upperarm_l') > sx('upperarm_r'); // flipped: target is rotated 180°
   const side = (n) => n.replace(/_A$/, negIsL ? '_l' : '_r').replace(/_B$/, negIsL ? '_r' : '_l');
 
   // scale so the head sits at the same height as the hidden rig's head
