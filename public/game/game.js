@@ -195,7 +195,12 @@ function house(x,z,color,index=0,dense=false){
  const brickKey=index%3?'brick-warm':'brick-cool';
  const brick=mats[brickKey]??=(texturedMaterial(index%3?'#aa8a75':'#928b7b','brick'));
  box(brick,x,y-.2,z,w+.4,1.1,d+.4);
- box(index%4===2?brick:mat(color),x,y+2.1,z,w,4.2,d);
+ const boards=mats['wb'+color]??=texturedMaterial(color,'weatherboard',{bumpScale:.12});
+ const glass=mats.__glass??=new THREE.MeshStandardMaterial({color:'#4a6670',roughness:.06,metalness:.85,envMapIntensity:1.4});
+ const joinery=mats.__panel??=texturedMaterial('#ffffff','panel',{roughness:.6,bumpScale:.05});
+ const brass=mats.__brass??=new THREE.MeshStandardMaterial({color:'#c9a14a',roughness:.3,metalness:1});
+ const lamp=mats.__lamp??=new THREE.MeshStandardMaterial({color:'#ffe6b0',emissive:'#ffcf7a',emissiveIntensity:1.6,roughness:.4});
+ box(index%4===2?brick:boards,x,y+2.1,z,w,4.2,d);
  roof(x,y+4.2,z,w+1.6,d+1.8,index%2?'#8d6854':'#657b79');
  // Fascias, gutters, corner boards and a layered timber veranda.
  for(const side of [-1,1]){
@@ -211,14 +216,14 @@ function house(x,z,color,index=0,dense=false){
  box('#52675e',x,y+1.5,z+d/2+.06,1.6,3,.14);
  for(const dx of [-3.2,3.2]){
   box('#e6dbc0',x+dx,y+2.3,z+d/2+.08,2.35,1.9,.18);
-  box('#3f6872',x+dx,y+2.3,z+d/2+.2,1.95,1.55,.12);
+  box(glass,x+dx,y+2.3,z+d/2+.2,1.95,1.55,.12);
   box('#d8cba9',x+dx,y+2.3,z+d/2+.3,.07,1.55,.07);
   box('#d8cba9',x+dx,y+2.3,z+d/2+.3,1.95,.07,.07);
   box('#d8cba9',x+dx,y+1.35,z+d/2+.3,2.5,.15,.35);
   // Draped curtains and recessed shadow at the window header.
   for(const side of [-1,1])box('#d4c9b0',x+dx+side*.78,y+2.3,z+d/2+.27,.22,1.4,.035);
  }
- for(let zz=-3;zz<5;zz+=4){box('#ddd1b6',x+w/2+.04,y+2.4,z+zz,.18,1.8,2.1);box('#3f6872',x+w/2+.15,y+2.4,z+zz,.09,1.5,1.8)}
+ for(let zz=-3;zz<5;zz+=4){box('#ddd1b6',x+w/2+.04,y+2.4,z+zz,.18,1.8,2.1);box(glass,x+w/2+.15,y+2.4,z+zz,.09,1.5,1.8)}
  const fx=x+(dense?9:w/2+3);
  for(let zz=-10;zz<=11;zz+=2)if(zz<d/2+1)box('#d1cbb2',fx,y+.9,z+zz,.25,1.8,.8);
  box('#c8c2a6',fx,y+.75,z, .15,.15,23);box('#c8c2a6',fx,y+1.35,z,.15,.15,23);
@@ -237,13 +242,33 @@ function house(x,z,color,index=0,dense=false){
    for(const s of [-1,1])box(shut,x+dx+s*1.5,y+2.3,fz+.3,.52,1.7,.08);
    box('#cfc3a6',x+dx,y+3.3,fz+.3,2.6,.16,.32);
    box('#e6dbc0',x+dx,y+2.3,fz+.36,.06,1.55,.05);
+   // Six-pane sash bars, a deeper reveal, and a planter box under each window.
+   for(const s of [-1,1])box('#e6dbc0',x+dx+s*.5,y+2.3,fz+.36,.04,1.55,.04);
+   box('#2a2724',x+dx,y+2.3,fz+.15,2.1,1.7,.05);
+   box('#7a5a3e',x+dx,y+1.1,fz+.5,2.1,.32,.36);
+   box('#4f3d2b',x+dx,y+1.27,fz+.5,1.95,.04,.3);
+   for(let k=-3;k<=3;k++)add(sphereGeo,['#5f7d45','#6f8c4c','#c45a6a','#e2c25a'][(k+3+index)%4],x+dx+k*.27,y+1.38,fz+.5,.17,.14,.15);
   }
-  box(doorC,x,y+1.5,fz+.2,1.5,2.95,.1);
+  const doorMat=mats['door'+doorC]??=texturedMaterial(doorC,'panel',{roughness:.55,bumpScale:.05});
+  box('#2a2724',x,y+1.5,fz+.12,1.6,3,.06);
+  box(doorMat,x,y+1.5,fz+.2,1.5,2.95,.1);
+  // Raised panels: two low, two high, with a glazed light at the top.
+  for(const s of [-1,1]){
+   box(doorMat,x+s*.36,y+.75,fz+.27,.5,.9,.05);
+   box(doorMat,x+s*.36,y+1.75,fz+.27,.5,.75,.05);
+  }
   box('#e9e0c8',x,y+3.05,fz+.17,1.9,.14,.16);
-  for(const s of [-1,1])box('#e9e0c8',x+s*.85,y+1.5,fz+.17,.12,3,.16);
-  box('#b9d0d0',x,y+2.25,fz+.27,.55,1.1,.04);
-  box('#d7b45c',x+.55,y+1.4,fz+.28,.1,.1,.08);
-  box('#e5dfcb',x+.62,y+2.8,fz+.27,.34,.2,.04);
+  box('#e9e0c8',x,y+3.55,fz+.17,1.9,.12,.16);
+  box(glass,x,y+3.3,fz+.2,1.6,.38,.06);
+  for(const s of [-1,1])box('#e9e0c8',x+s*.85,y+1.7,fz+.17,.12,3.95,.16);
+  box(glass,x,y+2.6,fz+.27,1.05,.5,.04);
+  box(brass,x+.58,y+1.45,fz+.3,.08,.08,.1);
+  box(brass,x+.58,y+1.25,fz+.28,.07,.16,.04);
+  box(brass,x,y+1.05,fz+.28,.32,.06,.03);
+  box(brass,x-.9,y+2.7,fz+.3,.16,.22,.03);
+  box('#2d2a26',x-1.25,y+2.7,fz+.25,.16,.3,.1);
+  box(lamp,x-1.25,y+2.62,fz+.33,.12,.2,.08);
+  box('#5b4a36',x,y+.37,fz+.9,1.4,.03,.75);
   for(const s of [-1,1])box('#8d928f',x+s*(w/2+.12),y+2.1,fz+.04,.1,4.2,.1);
   if(index%2===0){add(cylinderGeo,'#6a8a86',x+w/2+1.1,y+1.1,z-d/2+1.2,.85,2.2,.85);add(cylinderGeo,'#566f6c',x+w/2+1.1,y+2.25,z-d/2+1.2,.9,.1,.9);box('#566f6c',x+w/2+.45,y+3.4,z-d/2+1.2,1.2,.08,.08);colliders.push({x:x+w/2+1.1,z:z-d/2+1.2,w:.85,d:.85,h:2.3,kind:'tank'})}
   box('#6d716b',x+w/2+2.6,y+.55,fz+3.5,.08,1,.08);box(['#9f3a2f','#305d7a','#6d716b'][index%3],x+w/2+2.6,y+1.1,fz+3.5,.5,.28,.34);
