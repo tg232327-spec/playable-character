@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bogan Bay | After Hours</title>
+<meta name="theme-color" content="#263a34">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css?v=13">
+<link rel="stylesheet" href="./garage.css">
+<script type="importmap">{"imports":{"three":"./three.module.js"}}</script>
+</head>
+<body class="v11">
+<main id="game" aria-label="Bogan Bay 3D driving game">
+ <div id="scene"></div>
+ <div class="vignette"></div>
+ <header>
+  <a class="wordmark" href="#" aria-label="Bogan Bay home">BOGAN BAY<span>AFTER HOURS / NO SHINY HEROES.</span></a>
+  <div class="top-right"><span class="live"><i></i> AFTER HOURS</span><button id="sound" aria-label="Toggle sound" title="Toggle sound">SOUND OFF</button><button id="phone-top" aria-label="Open phone" title="Open phone (Q)">PHONE</button><button id="travel-top" aria-label="Open district travel">GO</button><button id="help-top" aria-label="Show controls">?</button><button id="pause" aria-label="Pause game">Ⅱ</button></div>
+ </header>
+ <section id="welcome">
+  <div class="eyebrow"><span>VICTORIA / 38° SOUTH</span><span>THE LONG WAY HOME.</span></div>
+ <h1>LAST LIGHT.<br>LOOSE <span>REAR.</span></h1>
+  <p>Cashies knocked over. Tools in the tray.<br>A tired V8, a filthy ute and nowhere to be.</p>
+  <button class="primary" id="start">LET'S HIT THE ROAD <span>↗</span></button>
+  <div class="start-note">V6 WATERLIFE <b>·</b> JET SKI <b>·</b> E-SCOOTER <b>·</b> DRIVE</div>
+ </section>
+ <section class="mission panel" id="mission"><div class="eyebrow"><span id="job-label">THE ESKY RUN</span><button id="jobs-open" aria-label="Open cash jobs board">JOBS</button><span id="mission-count">01 / 04</span></div><h2 id="mission-title">First stop: the local.</h2><p id="mission-desc">Pull into the Rusty Roo to pick up Gazza's esky.</p><div class="mission-bottom"><span class="yellow-dot"></span><span id="distance">140 m to the pub</span><span id="reward">$250 CASH</span></div><div id="job-timer" hidden></div></section>
+ <section id="burnout-card" aria-live="polite"><div>TYRE FRY / <span id="burnout-kind">HOLD B OR W + S</span></div><strong id="burnout-score">0000</strong><small id="burnout-best">PTS · BEST 0</small></section>
+ <div id="toast" role="status"></div>
+ <div id="interaction"></div>
+ <div id="scrap-status">FISTS / LEFT CLICK · 100 HP</div>
+ <button id="mobile-punch" aria-label="Throw a punch">PUNCH</button>
+ <button id="bus-action" hidden>F · BOARD ROUTE 782</button>
+ <div id="map-overlay" hidden><div class="eyebrow">BOGAN BAY / M TO CLOSE</div><div class="map-frame"><aside class="map-wrap expanded"><div class="map-top"><span>BOGAN BAY</span><span>N ↑</span></div><canvas id="minimap" width="760" height="540" aria-label="Town map"></canvas><div class="map-bottom"><span id="area">COAST ROAD</span><span>MAP <kbd>M</kbd></span></div></aside></div></div>
+ <section class="speed"><div class="vehicle-meta"><span id="vehicle-name">COMMODORE-INSPIRED V8</span><span id="gear">N</span></div><div class="speed-number"><span id="speed">000</span><small>KM/H</small></div><div class="speed-track"><i id="rpm"></i></div><div class="speed-bottom"><span id="drive-status">REAR-WHEEL DRIVE</span><span id="cash">$0</span></div></section>
+ <nav class="controls"><span><kbd>W A S D</kbd> DRIVE</span><span><kbd>SPACE</kbd> HANDBRAKE</span><span><kbd>E</kbd> CAR / RIDE</span><span><kbd>V</kbd> CHANGE CAR</span><button id="help-button"><kbd>?</kbd> MORE</button></nav>
+ <div id="performance">WEBGL · LOADING COASTLINE</div>
+ <button id="telemetry-toggle">TYRE TELEMETRY <kbd>F2</kbd></button>
+ <section id="telemetry" class="panel" hidden><div class="eyebrow">WHEEL LIVE DATA <span>120 Hz</span></div><h2>Four tyres. Real grip.</h2><div id="wheel-grid"></div><div class="physics-note">SPRING COMPRESSION · NORMAL LOAD<br><span id="physics-slip"></span></div></section>
+ <dialog id="travel"><div class="dialog-body"><div class="eyebrow">THE LONG WAY ROUND</div><h2>Where to?</h2><p>Seven connected areas. Pick a fresh stretch of road, or head to Skid Row for the meet and burnout pad. Current job progress stays with you; the sprint clock pauses while this menu is open.</p><div id="district-list"></div><button class="primary" id="close-travel">KEEP CRUISING <span>↗</span></button></div></dialog>
+ <dialog id="jobs"><div class="dialog-body"><div class="eyebrow">THE PUB NOTICEBOARD</div><h2>Cash in hand.</h2><p>Pick a job. Switching jobs abandons the current route, not the cash already in your pocket. The sprint starts you at North Head.</p><div id="job-list"><button data-job="esky"><strong>The esky run</strong><span>Four stops. Pub, beach, lookout, pub.</span><b>$250 / NO CLOCK</b></button><button data-job="cashie"><strong>A quick cashie</strong><span>Tools from the servo, drop at the worksite, collect at the pub.</span><b>$450 / NO PAPERWORK</b></button><button data-job="sprint"><strong>Last-light sprint</strong><span>North Head to the industrial end. Three gates, 95 seconds.</span><b>$600 / AGAINST THE CLOCK</b></button></div><button class="primary" id="close-jobs">BACK TO IT <span>↗</span></button></div></dialog>
+ <div id="mobile-controls"><div><button data-key="a" aria-label="Steer left">←</button><button data-key="d" aria-label="Steer right">→</button><button data-key="b" aria-label="Hold line lock burnout">BURN</button></div><div><button data-key="s" aria-label="Brake or reverse">↓</button><button data-key="w" aria-label="Accelerate">↑</button><button data-key=" " aria-label="Handbrake">DRIFT</button><button id="mobile-car" aria-label="Change car">CAR</button><button id="mobile-foot" aria-label="Exit or enter car">EXIT</button></div></div>
+ <dialog id="help"><div class="dialog-body"><div class="eyebrow">BOGAN BAY / VICTORIA</div><h2>Pick your grip.</h2>
+ <p>Four spring-damped wheels on a rigid-body chassis. The ute has planted 4x4 grip and a diesel soundtrack. The V8 sedan keeps loose rear tyres for power slides. Brake before a bend and countersteer the Holden. Hold B or W + S for deliberate line-lock burnouts; release to bank a combo.</p>
+ <p>Left click throws punches, or draws down with the two simple guns — press 1 for the pistol and 2 for the rifle, left click to fire, press the number again to holster. Locals fight back, lose health and get knocked down; your health returns when things settle. Drag to face your next swing. On phones, tap PUNCH. Most of the old screen clutter is gone: press Q for the phone (jobs, map, travel, controls) and M for the map.</p>
+ <p>At home you can sit on the couch or a stool (E), rip the bong for an hour of serenity or skull a beer from the fridge — too many and you're maggot, wobbling all over the road and barred from driving until it wears off. Swim out past the shallows and hold SPACE to dive under and check out the coral, schools and the dolphin pod; release to float back up. Traffic now brakes for pedestrians and your car. E plays a short door-opening and car-entry sequence.</p>
+ <div class="help-grid"><span><kbd>W A S D / ARROWS</kbd> Drive / walk</span><span><kbd>B / W + S</kbd> Line-lock burnout</span><span><kbd>SPACE</kbd> Handbrake / hop / dive while swimming</span><span><kbd>HOLD W+S, LET GO S</kbd> Scooter wheelie</span><span><kbd>SPACE x2</kbd> Scooter tail whip</span><span><kbd>E</kbd> Car / ride / sit on couch / use stuff at home</span><span><kbd>1 / 2</kbd> Draw pistol / rifle</span><span><kbd>LEFT CLICK</kbd> Punch or shoot</span><span><kbd>SHIFT</kbd> Run / boost</span><span><kbd>F</kbd> Board / leave stopped bus</span><span><kbd>V</kbd> Swap sedan / trayback</span><span><kbd>C</kbd> Change camera</span><span><kbd>H</kbd> Horn</span><span><kbd>R</kbd> Recover car</span><span><kbd>Q</kbd> Phone</span><span><kbd>M</kbd> Map</span><span><kbd>DRAG</kbd> Look around on foot</span><span><kbd>G</kbd> Travel (also on the phone)</span><span><kbd>J</kbd> Jobs (also on the phone)</span><span><kbd>F2</kbd> Wheel telemetry</span><span><kbd>P / ESC</kbd> Pause / resume</span></div>
+ <p class="credits">The visible human mesh, workwear, face, vehicles, scenery and synthesised audio are original. Only the skeleton and Idle/Walk/Run animation clips use <a href="https://threejs.org/examples/webgl_animation_skinning_additive_blending.html" target="_blank" rel="noopener">Mixamo Xbot via Three.js</a>, under <a href="https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html" target="_blank" rel="noopener">Adobe game-use terms</a>. Physics: <a href="https://rapier.rs/docs/user_guides/javascript/vehicle_controller/" target="_blank" rel="noopener">Rapier</a>. Bus styling is Victorian-inspired, not an official PTV asset. A fictional, stylised sandbox, not affiliated with The Big Lez Show, GTA, Holden or Toyota.</p><button class="primary" id="close-help">BACK TO IT <span>↗</span></button></div></dialog>
+ <div id="phone" hidden>
+  <div class="phone-body">
+   <div class="phone-notch"></div>
+   <div class="phone-statusbar"><span>BOGAN BAY TELCO</span><span id="phone-clock">7:42 PM</span></div>
+   <div class="phone-hero"><b id="phone-cash">$0</b><span id="phone-job">NO JOB</span></div>
+   <div class="phone-apps">
+    <button id="app-jobs"><strong>JOBS</strong><span>Cashies & runs</span></button>
+    <button id="app-map"><strong>MAP</strong><span>The whole bay</span></button>
+    <button id="app-travel"><strong>TRAVEL</strong><span>Jump a district</span></button>
+    <button id="app-help"><strong>CONTROLS</strong><span>How it all works</span></button>
+   </div>
+   <div class="phone-note">Press Q or tap outside to pocket it.</div>
+  </div>
+ </div>
+ <div id="paused" hidden><div class="pause-card panel"><div class="eyebrow">TAKING A BREATHER</div><h2>How's the serenity?</h2><p>Your spot's saved right here. Ready for another lap?</p><button class="primary" id="resume">BACK TO IT <span>↗</span></button><button id="reset">START A FRESH RUN</button></div></div>
+ <div id="loading"><div class="wordmark">BOGAN BAY</div><span>WARMING UP THE V8…</span></div>
+</main>
+<script type="module" src="./game.js?v=14"></script>
+<script data-pplx-inline-edit>
+(function () {
+  if (window === window.top) return;
+
+  const allowedParentOrigins = ["https://www.perplexity.ai","https://perplexity.ai","https://testing.perplexity.ai","https://staging.perplexity.ai","https://*.preview.i.perplexity.ai","http://perplexity.localhost","http://localhost:1420","http://127.0.0.1:1420","http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173"];
+  const MAX_FONT_BYTES = 500 * 1024;
+  const MAX_TOTAL_FONT_BYTES = 2 * 1024 * 1024;
+  const DEFAULT_LINE_HEIGHT = 16;
+  let scrollForwarding = false;
+  let scrollRaf = 0;
+  let trustedTopOrigin = null;
+
+  // Allow entries like "https://*.preview.i.perplexity.ai" — the wildcard
+  // matches a single DNS label (no dots), so "https://*.foo" cannot stretch
+  // across multiple labels.
+  function matchesAllowedOrigin(origin) {
+    if (!origin) return false;
+    for (const entry of allowedParentOrigins) {
+      if (!entry.includes("*")) {
+        if (entry === origin) return true;
+        continue;
+      }
+      const pattern = new RegExp(
+        "^" +
+          entry.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^.]+") +
+          "$",
+      );
+      if (pattern.test(origin)) return true;
+    }
+    return false;
+  }
+
+  // Trust decision: when the sender is same-origin-visible (event.origin is a
+  // real origin like https://www.perplexity.ai) we trust event.origin directly.
+  // When event.origin is "null" (opaque broker srcdoc), we fall back to the
+  // broker's stamped `parentOrigin` to identify the top window. The fallback
+  // is claim-only — we rely on the browser's native `targetOrigin` enforcement
+  // on the response path (see postToTrustedTop) to ensure replies can't be
+  // delivered to anyone but the actual top window of that claimed origin.
+  function getTrustedParentOrigin(event) {
+    const forwardedParentOrigin =
+      typeof event.data.parentOrigin === "string" ? event.data.parentOrigin : null;
+    const parentOrigin = event.origin === "null" ? forwardedParentOrigin : event.origin;
+    return matchesAllowedOrigin(parentOrigin) ? parentOrigin : null;
+  }
+
+  // All responses go to window.top with targetOrigin = the allowlisted origin.
+  // An attacker that iframes us inside their own null-origin broker can claim
+  // any parentOrigin they like, but the browser will drop the reply whenever
+  // the real top's origin doesn't match — so the screenshot never leaves.
+  function postToTrustedTop(message) {
+    if (!trustedTopOrigin) return;
+    try {
+      window.top.postMessage(message, trustedTopOrigin);
+    } catch (_error) {}
+  }
+
+  const PICK_CAPABILITIES = ["pick"];
+  const PICK_CHAIN_LENGTH = 4;
+  const PICK_MAX_TEXT_CHARS = 120;
+  const PICK_MAX_HTML_CHARS = 300;
+
+  function truncate(value, maxChars) {
+    return value.length > maxChars ? value.slice(0, maxChars - 1) + "…" : value;
+  }
+
+  function isPickableElement(element) {
+    return (
+      element instanceof Element &&
+      element !== document.documentElement &&
+      element !== document.body
+    );
+  }
+
+  function resolvePickTarget(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const element = document.elementFromPoint(x, y);
+    return isPickableElement(element) ? element.closest("svg") || element : null;
+  }
+
+  function pickLabel(element) {
+    if (element.id) return element.localName + "#" + element.id;
+    return [element.localName].concat(Array.from(element.classList).slice(0, 2)).join(".");
+  }
+
+  // Only attributes that help find the element in source. data-* values and URL
+  // query strings or fragments can carry tokens.
+  const PICK_ATTRIBUTES = new Set([
+    "id",
+    "class",
+    "name",
+    "type",
+    "role",
+    "alt",
+    "aria-label",
+    "href",
+    "src",
+  ]);
+
+  function pickAttributeValue(attribute) {
+    return attribute.name === "href" || attribute.name === "src"
+      ? attribute.value.split(/[?#]/)[0]
+      : attribute.value;
+  }
+
+  function describePickElement(element) {
+    const chain = [];
+    for (
+      let current = element;
+      isPickableElement(current) && chain.length < PICK_CHAIN_LENGTH;
+      current = current.parentElement
+    ) {
+      chain.unshift(current);
+    }
+    const attributes = Array.from(element.attributes)
+      .filter((attribute) => PICK_ATTRIBUTES.has(attribute.name))
+      .map((attribute) => ` ${attribute.name}="${pickAttributeValue(attribute).replace(/"/g, "&quot;")}"`)
+      .join("");
+    const text = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+    return {
+      chain: chain.map(pickLabel),
+      html: truncate(`<${element.localName}${attributes}>`, PICK_MAX_HTML_CHARS),
+      text: text ? truncate(text, PICK_MAX_TEXT_CHARS) : undefined,
+    };
+  }
+
+  // Hover asks once per frame, and innerText on a large section forces layout,
+  // so only the rect is re-read while the pointer stays on the same element.
+  // Clicks ask for fresh details since the page may have changed the element.
+  let lastPick = null;
+
+  function describePickTarget(element, fresh) {
+    if (fresh || lastPick?.element !== element) {
+      lastPick = { element, details: describePickElement(element) };
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+      rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+      ...lastPick.details,
+    };
+  }
+
+  function inlineAll(original, clone) {
+    if (original.nodeType !== 1 || clone.nodeType !== 1) return;
+
+    try {
+      const computedStyle = getComputedStyle(original);
+      // cssText on a computed style is the serialized declaration in modern
+      // Chromium/Safari — a single read beats enumerating ~400 longhand
+      // properties. Firefox returns "" here, so we fall back on empty.
+      const serialized = computedStyle.cssText;
+      if (serialized) {
+        clone.style.cssText = serialized;
+      } else {
+        const parts = new Array(computedStyle.length);
+        for (let index = 0; index < computedStyle.length; index += 1) {
+          const property = computedStyle[index];
+          parts[index] = `${property}:${computedStyle.getPropertyValue(property)};`;
+        }
+        clone.style.cssText = parts.join("");
+      }
+    } catch (_error) {}
+
+    const originalChildren = original.children;
+    const clonedChildren = clone.children;
+    for (
+      let index = 0;
+      index < originalChildren.length && index < clonedChildren.length;
+      index += 1
+    ) {
+      inlineAll(originalChildren[index], clonedChildren[index]);
+    }
+  }
+
+  function extractFontUrl(srcValue) {
+    const matches = [
+      ...srcValue.matchAll(
+        /url\(["']?([^"')]+)["']?\)(?:\s*format\(["']?([^"')]+)["']?\))?/gi,
+      ),
+    ];
+    if (matches.length === 0) return null;
+    const woff2 = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff2"));
+    if (woff2) return woff2[1];
+    const woff = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff"));
+    if (woff) return woff[1];
+    return matches[0][1];
+  }
+
+  // Cache resolved font URL -> data URI across captures. Fonts on a page
+  // essentially never change, and a batch run emits multiple captures back to
+  // back — without this we'd refetch + re-base64 every time.
+  const fontDataUriCache = new Map();
+  const SRC_DECLARATION_RE = /src\s*:\s*[^;}]+/i;
+
+  async function fetchAsDataUri(url) {
+    if (fontDataUriCache.has(url)) return fontDataUriCache.get(url);
+    let dataUri = null;
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size <= MAX_FONT_BYTES) {
+          dataUri = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () =>
+              resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    } catch (_error) {
+      dataUri = null;
+    }
+    fontDataUriCache.set(url, dataUri);
+    return dataUri;
+  }
+
+  function collectFontFaceRuleTexts() {
+    const rules = [];
+    for (const sheet of document.styleSheets) {
+      let cssRules;
+      try {
+        cssRules = sheet.cssRules;
+      } catch (_error) {
+        continue;
+      }
+      if (!cssRules) continue;
+      for (const rule of cssRules) {
+        const cssText = rule.cssText || "";
+        if (cssText.startsWith("@font-face")) rules.push(cssText);
+      }
+    }
+    return rules;
+  }
+
+  async function buildInlinedFontCss() {
+    const ruleTexts = collectFontFaceRuleTexts();
+    if (ruleTexts.length === 0) return null;
+
+    const resolved = ruleTexts.map((cssText) => {
+      if (!SRC_DECLARATION_RE.test(cssText)) return null;
+      const srcMatch = cssText.match(/src\s*:\s*([^;}]+)[;}]/i);
+      if (!srcMatch) return null;
+      const url = extractFontUrl(srcMatch[1]);
+      if (!url) return null;
+      try {
+        return { cssText, url: new URL(url, document.baseURI).href };
+      } catch (_error) {
+        return null;
+      }
+    });
+
+    const dataUris = await Promise.all(
+      resolved.map((entry) => (entry ? fetchAsDataUri(entry.url) : Promise.resolve(null))),
+    );
+
+    const inlined = [];
+    let totalBytes = 0;
+    for (let index = 0; index < resolved.length; index += 1) {
+      const entry = resolved[index];
+      const dataUri = dataUris[index];
+      if (!entry || !dataUri) continue;
+      const approxBytes = dataUri.length * 0.75;
+      if (totalBytes + approxBytes > MAX_TOTAL_FONT_BYTES) break;
+      totalBytes += approxBytes;
+      inlined.push(entry.cssText.replace(SRC_DECLARATION_RE, `src: url("${dataUri}")`));
+    }
+    return inlined.length > 0 ? inlined.join("\n") : null;
+  }
+
+  function stripExternal(clone) {
+    const images = clone.querySelectorAll("img");
+    for (let index = 0; index < images.length; index += 1) {
+      const src = images[index].getAttribute("src");
+      if (src && !src.startsWith("data:")) images[index].removeAttribute("src");
+    }
+
+    const elements = clone.querySelectorAll("*");
+    for (let index = 0; index < elements.length; index += 1) {
+      const style = elements[index].style.cssText;
+      if (style && style.includes("url(")) {
+        elements[index].style.cssText = style.replace(
+          /url\(["']?(?!data:)[^)"']*["']?\)/gi,
+          "none",
+        );
+      }
+    }
+  }
+
+  function emitScroll() {
+    scrollRaf = 0;
+    if (!scrollForwarding) return;
+    postToTrustedTop({
+      type: "INLINE_EDIT_SCROLL",
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      capabilities: PICK_CAPABILITIES,
+    });
+  }
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!scrollForwarding || scrollRaf) return;
+      scrollRaf = requestAnimationFrame(emitScroll);
+    },
+    { passive: true, capture: true },
+  );
+
+  async function handleCaptureRequest(event) {
+    const requestId = event.data.requestId;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    function postResult(dataUrl) {
+      postToTrustedTop({
+        type: "INLINE_EDIT_SCREENSHOT_RESULT",
+        requestId,
+        dataUrl,
+        scrollX,
+        scrollY,
+      });
+    }
+
+    try {
+      // Wait for any pending web fonts to resolve so both inline metrics and
+      // the @font-face inlining below see the same loaded faces.
+      if (document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_error) {}
+      }
+
+      const clone = document.documentElement.cloneNode(true);
+      inlineAll(document.documentElement, clone);
+
+      const removedNodes = clone.querySelectorAll("script,link[rel=\"stylesheet\"],style");
+      for (let index = 0; index < removedNodes.length; index += 1) {
+        removedNodes[index].remove();
+      }
+
+      stripExternal(clone);
+
+      // Re-embed web fonts as data-URI @font-face rules so the SVG rasterizer
+      // can resolve them — external font URLs aren't fetched during
+      // foreignObject rendering, which would otherwise force a fallback face
+      // and change text metrics.
+      const inlinedFontCss = await buildInlinedFontCss();
+      if (inlinedFontCss) {
+        const styleEl = document.createElement("style");
+        styleEl.textContent = inlinedFontCss;
+        const head = clone.querySelector("head");
+        if (head) head.appendChild(styleEl);
+        else clone.insertBefore(styleEl, clone.firstChild);
+      }
+
+      const html = new XMLSerializer().serializeToString(clone);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+        '<foreignObject width="100%" height="100%">' +
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden">` +
+        `<div style="position:relative;left:-${scrollX}px;top:-${scrollY}px">` +
+        html +
+        "</div></div></foreignObject></svg>";
+      const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const image = new Image();
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        postResult(canvas.toDataURL("image/png"));
+      };
+      image.onerror = function () {
+        postResult(null);
+      };
+      image.src = svgUrl;
+    } catch (_error) {
+      postResult(null);
+    }
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.data) return;
+    // Only accept messages from the direct parent frame. Blocks sibling /
+    // unrelated-window postMessage senders that could otherwise reach us.
+    if (event.source !== window.parent) return;
+
+    const trustedParentOrigin = getTrustedParentOrigin(event);
+    if (!trustedParentOrigin) return;
+    trustedTopOrigin = trustedParentOrigin;
+
+    if (event.data.type === "INLINE_EDIT_PICK") {
+      const element = resolvePickTarget(event.data.x, event.data.y);
+      postToTrustedTop({
+        type: "INLINE_EDIT_PICK_RESULT",
+        seq: event.data.seq,
+        target: element ? describePickTarget(element, event.data.fresh === true) : null,
+      });
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_START") {
+      scrollForwarding = true;
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_STOP") {
+      scrollForwarding = false;
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      scrollRaf = 0;
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_BY") {
+      const { deltaX, deltaY, deltaMode } = event.data;
+      if (!scrollForwarding || !Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
+      if (deltaMode !== 0 && deltaMode !== 1 && deltaMode !== 2) return;
+      const lineHeight =
+        parseFloat(getComputedStyle(document.documentElement).lineHeight) || DEFAULT_LINE_HEIGHT;
+      const scaleX = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerWidth : 1;
+      const scaleY = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerHeight : 1;
+      // The selection overlay receives the wheel event instead of this iframe.
+      // Instant scrolling preserves trackpad deltas even on smooth-scroll sites.
+      window.scrollBy({ left: deltaX * scaleX, top: deltaY * scaleY, behavior: "instant" });
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type !== "INLINE_EDIT_CAPTURE_REQUEST") return;
+
+    handleCaptureRequest(event);
+  });
+})();
+
+
+</script></body></html>

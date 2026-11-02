@@ -1,0 +1,16 @@
+:root{--panel:rgba(29,27,25,.96);--line:#f2dfba55;--yellow:#eac073}
+.mission{transform:rotate(-.65deg);border:1px solid #b5a58b;box-shadow:3px 5px 0 #10100e55;background:repeating-linear-gradient(0deg,transparent 0 5px,#ffffff03 5px 6px),var(--panel)}
+.mission::before{content:"";position:absolute;width:68px;height:17px;background:#c7b68a9c;left:28px;top:-9px;transform:rotate(-7deg);clip-path:polygon(0 5%,96% 0,100% 90%,3% 100%)}
+.speed{transform:rotate(.7deg);border-top:3px solid #a05b42;box-shadow:-3px 4px 0 #1115}
+.map-wrap{transform:rotate(-.5deg);box-shadow:4px 5px 0 #1115}
+#burnout-card{border-style:dashed;transform:rotate(1deg)}
+.wordmark{letter-spacing:-1.3px;text-shadow:2px 3px 0 #211c1c}
+#scrap-status{display:none;position:absolute;left:36px;top:105px;padding:9px 13px;font:700 12px 'DM Sans',sans-serif;background:#292622f5;color:#f7dfb6;border-left:3px solid #bd6550;transform:rotate(-1deg);z-index:3;box-shadow:3px 3px 0 #14141466}
+#mobile-punch{display:none;position:absolute;right:16px;bottom:154px;min-width:68px;min-height:44px;background:#9b4935;color:#fff4df;border:1px solid #e7bf92;z-index:6;touch-action:manipulation;transform:rotate(-2deg)}
+body.on-foot .speed,body.on-foot #burnout-card{display:none}
+body.sprint-job #burnout-card{top:393px}
+body.playing.on-foot #scrap-status{display:block}
+@media(pointer:coarse),(max-width:800px){body.playing.on-foot #mobile-punch{display:block}}
+@media(max-width:600px){#scrap-status{left:16px;top:81px;font-size:10px;padding:7px 9px;max-width:124px;line-height:1.5}.mission{transform:none}.mission::before{width:44px;left:16px;height:10px;top:-6px}.map-wrap,.speed{transform:none}body.sprint-job #burnout-card{top:330px}}
+@media(max-height:600px) and (min-width:601px){.mission{top:85px;padding:12px;width:265px}.mission p{display:none}#burnout-card{top:260px;width:175px;padding:8px 12px}.map-wrap{width:190px}.speed{width:200px}.controls{display:none}#scrap-status{top:85px}}
+@media(max-height:600px) and (min-width:601px){body.playing #burnout-card{top:98px;right:auto;left:36px}}
