@@ -935,7 +935,7 @@ function update(dt){
   const forward=keys.has('w')||keys.has('arrowup'),back=keys.has('s')||keys.has('arrowdown'),left=keys.has('a')||keys.has('arrowleft'),right=keys.has('d')||keys.has('arrowright'),drift=keys.has(' ');
   if(playerRag>0){
    // Ragdolled: physics owns the body; camera follows the pelvis.
-   playerRag-=dt;const p=ragdolls.pos('player');if(p){state.walkX=p.x;state.walkZ=p.z;state.walkY=p.y-.9}
+   playerRag-=dt;const p=ragdolls.pos('player');if(p){state.walkX=p.x;state.walkZ=p.z;state.walkY=Math.max(height(p.x,p.z),padAt(p.x,p.z)??-Infinity)+.13}
    state.walkVX=state.walkVZ=0;if(playerRag<=0)endPlayerRag();
   }else if(state.onFoot&&state.sitting&&!state.onBus&&!entry&&!rides.active){
    // V11: parked on the couch / stool — hold the pose, breathe.
