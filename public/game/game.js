@@ -195,7 +195,12 @@ function house(x,z,color,index=0,dense=false){
  const brickKey=index%3?'brick-warm':'brick-cool';
  const brick=mats[brickKey]??=(texturedMaterial(index%3?'#aa8a75':'#928b7b','brick'));
  box(brick,x,y-.2,z,w+.4,1.1,d+.4);
- box(index%4===2?brick:mat(color),x,y+2.1,z,w,4.2,d);
+ const boards=mats['wb'+color]??=texturedMaterial(color,'weatherboard',{bumpScale:.12});
+ const glass=mats.__glass??=new THREE.MeshStandardMaterial({color:'#4a6670',roughness:.06,metalness:.85,envMapIntensity:1.4});
+ const joinery=mats.__panel??=texturedMaterial('#ffffff','panel',{roughness:.6,bumpScale:.05});
+ const brass=mats.__brass??=new THREE.MeshStandardMaterial({color:'#c9a14a',roughness:.3,metalness:1});
+ const lamp=mats.__lamp??=new THREE.MeshStandardMaterial({color:'#ffe6b0',emissive:'#ffcf7a',emissiveIntensity:1.6,roughness:.4});
+ box(index%4===2?brick:boards,x,y+2.1,z,w,4.2,d);
  roof(x,y+4.2,z,w+1.6,d+1.8,index%2?'#8d6854':'#657b79');
  // Fascias, gutters, corner boards and a layered timber veranda.
  for(const side of [-1,1]){

@@ -42,11 +42,26 @@ export function makeSurface(kind){
  if(kind==='tile'){
   for(let y=0;y<512;y+=48)for(let x=0;x<512;x+=32){const g=c.createLinearGradient(x,0,x+32,0);g.addColorStop(0,'#858585');g.addColorStop(.4,'#eeeeee');g.addColorStop(1,'#bababa');c.fillStyle=g;c.fillRect(x,y,31,46);c.fillStyle='#777777';c.fillRect(x,y+44,32,3)}
  }
+ if(kind==='weatherboard'){
+  // Overlapping painted boards: bright face, shadowed lip, light grain and wear.
+  for(let y=0;y<512;y+=32){
+   const g=c.createLinearGradient(0,y,0,y+32);g.addColorStop(0,'#6a6a6a');g.addColorStop(.12,'#dcdcdc');g.addColorStop(.85,'#f2f2f2');g.addColorStop(1,'#a8a8a8');
+   c.fillStyle=g;c.fillRect(0,y,512,32);
+   for(let j=0;j<10;j++){c.strokeStyle=`rgba(90,90,90,${random()*.1})`;c.beginPath();const yy=y+4+random()*26;c.moveTo(0,yy);c.lineTo(512,yy+(random()-.5)*3);c.stroke()}
+   const joint=random()*512;c.fillStyle='#8a8a8a';c.fillRect(joint,y+3,2,28);
+  }
+  for(let i=0;i<60;i++){c.fillStyle=`rgba(110,105,95,${random()*.08})`;c.fillRect(random()*512,random()*512,1+random()*3,8+random()*40)}
+ }
+ if(kind==='panel'){
+  // Door/joinery: fine vertical grain.
+  c.fillStyle='#d8d8d8';c.fillRect(0,0,512,512);
+  for(let i=0;i<260;i++){c.strokeStyle=`rgba(80,80,80,${random()*.14})`;c.lineWidth=1+random();const x=random()*512;c.beginPath();c.moveTo(x,0);c.bezierCurveTo(x+(random()-.5)*14,170,x+(random()-.5)*14,340,x+(random()-.5)*8,512);c.stroke()}
+ }
  const t=new THREE.CanvasTexture(canvas);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;
  const bump=t.clone();bump.colorSpace=THREE.NoColorSpace;bump.needsUpdate=true;
  return {map:t,bumpMap:bump};
 }
-export const surfaces=Object.fromEntries(['asphalt','grass','sand','dirt','wood','brick','metal','tile'].map(k=>[k,makeSurface(k)]));
+export const surfaces=Object.fromEntries(['asphalt','grass','sand','dirt','wood','brick','metal','tile','weatherboard','panel'].map(k=>[k,makeSurface(k)]));
 export function texturedMaterial(color,kind,opts={}){
  return new THREE.MeshStandardMaterial({color,...surfaces[kind],roughness:kind==='metal'?.62:.95,bumpScale:kind==='brick'?.08:kind==='metal'?.025:.045,...opts});
 }
