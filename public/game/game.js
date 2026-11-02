@@ -216,14 +216,14 @@ function house(x,z,color,index=0,dense=false){
  box('#52675e',x,y+1.5,z+d/2+.06,1.6,3,.14);
  for(const dx of [-3.2,3.2]){
   box('#e6dbc0',x+dx,y+2.3,z+d/2+.08,2.35,1.9,.18);
-  box('#3f6872',x+dx,y+2.3,z+d/2+.2,1.95,1.55,.12);
+  box(glass,x+dx,y+2.3,z+d/2+.2,1.95,1.55,.12);
   box('#d8cba9',x+dx,y+2.3,z+d/2+.3,.07,1.55,.07);
   box('#d8cba9',x+dx,y+2.3,z+d/2+.3,1.95,.07,.07);
   box('#d8cba9',x+dx,y+1.35,z+d/2+.3,2.5,.15,.35);
   // Draped curtains and recessed shadow at the window header.
   for(const side of [-1,1])box('#d4c9b0',x+dx+side*.78,y+2.3,z+d/2+.27,.22,1.4,.035);
  }
- for(let zz=-3;zz<5;zz+=4){box('#ddd1b6',x+w/2+.04,y+2.4,z+zz,.18,1.8,2.1);box('#3f6872',x+w/2+.15,y+2.4,z+zz,.09,1.5,1.8)}
+ for(let zz=-3;zz<5;zz+=4){box('#ddd1b6',x+w/2+.04,y+2.4,z+zz,.18,1.8,2.1);box(glass,x+w/2+.15,y+2.4,z+zz,.09,1.5,1.8)}
  const fx=x+(dense?9:w/2+3);
  for(let zz=-10;zz<=11;zz+=2)if(zz<d/2+1)box('#d1cbb2',fx,y+.9,z+zz,.25,1.8,.8);
  box('#c8c2a6',fx,y+.75,z, .15,.15,23);box('#c8c2a6',fx,y+1.35,z,.15,.15,23);
