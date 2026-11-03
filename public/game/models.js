@@ -5,6 +5,7 @@ import { GLTFLoader } from './addons/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from './addons/utils/SkeletonUtils.js';
 import { loadBogan,buildBogan,PALETTES,NPC_PALETTES } from './bogan-character.js';
 import { attachPlayerAvatar } from './player-avatar.js';
+import { JumpAnimation } from './jump-animation.js';
 import { surfaces } from './materials.js';
 
 const box=new THREE.BoxGeometry(1,1,1);
@@ -218,6 +219,7 @@ export class AnimatedLocal{
   const scale=1.80/asset.H;this.model=root;this.body=body;
   root.scale.setScalar(scale);root.position.y=-asset.box.min.y*scale;this.group.add(root);
   try{this.avatar=await attachPlayerAvatar(this.group,root)}catch(e){console.warn('player avatar failed, using default body',e)}
+  this.jumpAnimation=new JumpAnimation(root,this.group);
   this.mixer=new THREE.AnimationMixer(root);
   const loops={idle:'idle',walk:'walk',run:'jog',sprint:'sprint',swim:'swim',swimIdle:'swimIdle'};
   for(const [key,clip] of Object.entries(loops)){const a=this.mixer.clipAction(asset.clips[clip]);a.play();a.setEffectiveWeight(key==='idle'?1:0);this.actions[key]=a}
@@ -279,7 +281,7 @@ export class AnimatedLocal{
   npc.play(walking?'walk':'idle');mixer.addEventListener('finished',()=>{if(!npc.down&&!npc.dead)npc.play(npc.aggro?'idle':(walking?'walk':'idle'))});
   return npc;
  }
- update(dt,speed,angle){
+ update(dt,speed,angle,jump=null){
   if(!this.mixer)return;
   const target=this.swimming?(speed>.3?'swim':'swimIdle'):speed>.2?(speed>3.6?'sprint':speed>2.7?'run':'walk'):'idle';
   this.current=target;this.speed=speed;
@@ -289,7 +291,10 @@ export class AnimatedLocal{
     a.setEffectiveTimeScale(name==='walk'?Math.max(.55,speed/1.7):name==='run'?Math.max(.7,speed/3.4):name==='sprint'?Math.max(.8,speed/6.2):name==='swim'?1:1);
    }
   }
-  this.mixer.update(dt);this.swimming=false;
+  this.mixer.update(dt);
+  this.jumpAnimation.update(dt,jump,!this.override&&!this.swimming&&!this.rag);
+  if(jump?.height>.025&&!this.swimming&&!this.override)this.current='jump';
+  this.swimming=false;
   if(speed>.1&&!this.override){const delta=Math.atan2(Math.sin(angle-this.group.rotation.y),Math.cos(angle-this.group.rotation.y));this.group.rotation.y+=delta*(1-Math.exp(-dt*12))}
  }
 }
