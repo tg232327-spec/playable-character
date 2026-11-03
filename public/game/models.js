@@ -238,7 +238,7 @@ export class AnimatedLocal{
  release(fade=.15){
   if(!this.override)return;const a=this.override;this.override=null;a.fadeOut(fade);
  }
- spawnNPC(scene,x,z,height,walking=false){
+ spawnNPC(scene,x,z,height,walking=false,canWalk=()=>true){
   const idx=scene.userData.npcCount=(scene.userData.npcCount||0)+1;
   const {root:model}=buildBogan(this.asset,NPC_PALETTES[idx%NPC_PALETTES.length]);
   model.scale.setScalar(1.80/this.asset.H);model.position.y=-this.asset.box.min.y*1.80/this.asset.H;
@@ -256,8 +256,16 @@ export class AnimatedLocal{
     if(this.cur&&this.cur!==a)this.cur.crossFadeTo(a,fade,false);this.cur=a;this.cur.name=name;
    },
    pickWaypoint(){
-    const a=Math.random()*Math.PI*2,r=6+Math.random()*14;
-    this.wp={x:this.homeX+Math.cos(a)*r,z:this.homeZ+Math.sin(a)*r};
+    for(let attempt=0;attempt<12;attempt++){
+     const a=Math.random()*Math.PI*2,r=6+Math.random()*14;
+     const x=this.homeX+Math.cos(a)*r,z=this.homeZ+Math.sin(a)*r;
+     if(!canWalk(x,z))continue;
+     const distance=Math.hypot(x-root.position.x,z-root.position.z);
+     const steps=Math.max(1,Math.ceil(distance/.5));let clear=true;
+     for(let i=1;i<=steps;i++)if(!canWalk(root.position.x+(x-root.position.x)*i/steps,root.position.z+(z-root.position.z)*i/steps)){clear=false;break}
+     if(clear){this.wp={x,z};return}
+    }
+    this.wp=null;this.wpWait=1;
    },
    update(dt){
     this.time+=dt;if(!this.rag)mixer.update(dt);
@@ -270,7 +278,9 @@ export class AnimatedLocal{
      if(d<.8){this.wp=null;this.wpWait=1.5+Math.random()*3.5;this.play('idle')}
      else{
       const step=Math.min(d,1.25*dt);
-      root.position.x+=dx/d*step;root.position.z+=dz/d*step;
+      const nx=root.position.x+dx/d*step,nz=root.position.z+dz/d*step;
+      if(!canWalk(nx,nz)){this.wp=null;this.wpWait=.5;this.play('idle');return}
+      root.position.x=nx;root.position.z=nz;
       root.position.y=height(root.position.x,root.position.z)+.13;
       const yaw=Math.atan2(dx,dz);
       let dy=yaw-root.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));root.rotation.y+=dy*Math.min(1,dt*6);

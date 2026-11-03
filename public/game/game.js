@@ -677,8 +677,19 @@ const tyreFX=createTyreFX(scene,height);
 const npcLocals=[];
 // V11: the locals are the Brown Town boys now — Lez, Sassy, Donny, Nolan, Clarence, Owly, Sergio and Noelsy.
 const NPC_NAMES=['Lez','Sassy','Donny','Nolan','Clarence','Owly','Sergio','Noelsy'];
+const npcCanWalk=(x,z)=>x>-780&&x<80&&z>-1000&&z<930&&!blocked(x,z,.35);
 for(const [i,[x,z,walking]] of [[-29,23,false],[-36,27,false],[71,-130,true],[89,-102,true],[-280,80,true],[-160,-80,true],[-17,444,true],[64,-790,false]].entries()){
- const n=character.spawnNPC(scene,x,z,height,walking);n.name=NPC_NAMES[i];npcLocals.push(n);
+ const n=character.spawnNPC(scene,x,z,height,walking,npcCanWalk);n.name=NPC_NAMES[i];npcLocals.push(n);
+}
+// Locals on the coast-road verges, including the stretch outside the starting house.
+for(const [i,[sx,sz]] of [[-9,75],[-9,95],[-9,118],[8,130],[8,150],[-9,175],[8,210],[-9,250],[8,295],[-9,340],[8,390],[-9,470]].entries()){
+ let spot=null;
+ for(const offset of [0,2,-2,4,-4,7,-7]){
+  const x=sx,z=sz+offset;if(npcCanWalk(x,z)){spot={x,z};break}
+ }
+ if(!spot)continue;
+ const n=character.spawnNPC(scene,spot.x,spot.z,height,true,npcCanWalk);
+ n.name=`Local ${i+1}`;npcLocals.push(n);
 }
 const targetGroup=new THREE.Group();scene.add(targetGroup);
 const targetRing=new THREE.Mesh(new THREE.TorusGeometry(3.2,.1,8,56),new THREE.MeshBasicMaterial({color:'#ffda65'}));targetRing.rotation.x=Math.PI/2;targetGroup.add(targetRing);
