@@ -11,3 +11,4 @@
 
 - The game is a static three.js app in public/game, shown full-screen at / via iframe; keeps the original vanilla JS untouched by the React build.
 - The player mesh is the GLB at public/game/models/player/hero.glb, driven by retargeting the hidden original rig (public/game/player-avatar.js); keep animations on the original rig.
+- Jump presentation follows airborne height and vertical velocity on the original rig, separate from movement physics, so takeoff and landing stay synchronized.

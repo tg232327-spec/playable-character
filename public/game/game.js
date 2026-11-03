@@ -981,7 +981,7 @@ function update(dt){
    if(state.swimming&&walkMag()>.4&&rand()<.5)ocean.wake(state.walkX,state.walkZ,state.walkVX,state.walkVZ,.5);
    if(state.swimming){const dive=keys.has(' ')?1.7:0;state.walkY=THREE.MathUtils.damp(state.walkY,Math.max(ground+.2,surface-.95-dive),5,dt);state.walkVY=0}
    const walkingSpeed=Math.hypot(state.walkVX,state.walkVZ);
-   character.swimming=state.swimming;character.update(dt,walkingSpeed,Math.atan2(state.walkVX,state.walkVZ));
+   character.swimming=state.swimming;character.update(dt,walkingSpeed,Math.atan2(state.walkVX,state.walkVZ),{height:state.walkY-ground,velocity:state.walkVY});
    person.position.set(state.walkX,state.walkY,state.walkZ);
   }else if(!state.onFoot){
    input.throttle=(forward?1:0)-(back?1:0);input.steer=(left?1:0)-(right?1:0);input.handbrake=drift;input.burnout=keys.has('b')||(forward&&back);
