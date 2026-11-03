@@ -918,9 +918,30 @@ addEventListener('keydown',e=>{
 });
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>keys.clear());
 let lastDragX=0;
-renderer.domElement.addEventListener('pointerdown',e=>{if(state.onFoot){if(!entry&&e.button===0&&e.pointerType!=='touch'){if(guns.drawn>=0)guns.fire();else brawling.attack()}lastDragX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId)}});
-renderer.domElement.addEventListener('pointermove',e=>{if(state.onFoot&&renderer.domElement.hasPointerCapture(e.pointerId)){const dx=(e.clientX-lastDragX)*.006;if(rides.active){rides.camYaw-=dx;state.orbit-=dx}else state.orbit-=dx;lastDragX=e.clientX}});
-renderer.domElement.addEventListener('pointerup',e=>{if(renderer.domElement.hasPointerCapture(e.pointerId))renderer.domElement.releasePointerCapture(e.pointerId)});
+let cameraPress=null;
+function trackCameraDrag(e){
+ if(cameraPress&&cameraPress.id===e.pointerId&&Math.hypot(e.clientX-cameraPress.x,e.clientY-cameraPress.y)>6)cameraPress.dragged=true;
+}
+renderer.domElement.addEventListener('pointerdown',e=>{
+ if(!state.onFoot||cameraPress)return;
+ cameraPress={id:e.pointerId,x:e.clientX,y:e.clientY,dragged:false,attack:!entry&&e.button===0&&e.pointerType!=='touch'};
+ lastDragX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener('pointermove',e=>{
+ if(!cameraPress||cameraPress.id!==e.pointerId)return;
+ trackCameraDrag(e);
+ if(state.onFoot&&renderer.domElement.hasPointerCapture(e.pointerId)){const dx=(e.clientX-lastDragX)*.006;if(rides.active){rides.camYaw-=dx;state.orbit-=dx}else state.orbit-=dx;lastDragX=e.clientX}
+});
+renderer.domElement.addEventListener('pointerup',e=>{
+ if(!cameraPress||cameraPress.id!==e.pointerId)return;
+ trackCameraDrag(e);
+ const attack=cameraPress.attack&&!cameraPress.dragged&&state.onFoot&&!entry;
+ cameraPress=null;
+ if(renderer.domElement.hasPointerCapture(e.pointerId))renderer.domElement.releasePointerCapture(e.pointerId);
+ if(attack){if(guns.drawn>=0)guns.fire();else brawling.attack()}
+});
+for(const event of ['pointercancel','lostpointercapture'])renderer.domElement.addEventListener(event,e=>{if(cameraPress?.id===e.pointerId)cameraPress=null});
+addEventListener('blur',()=>{cameraPress=null});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){keys.clear();if(state.started)pause(true)}});
 function blocked(x,z,r=1.2){return colliders.some(b=>Math.abs(x-b.x)<b.w+r&&Math.abs(z-b.z)<b.d+r)}
 function walkMag(){return Math.hypot(state.walkVX,state.walkVZ)}
